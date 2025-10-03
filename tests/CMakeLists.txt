@@ -1,0 +1,2 @@
+add_subdirectory(GoogleTests)
+add_subdirectory(StaticAnalysis)

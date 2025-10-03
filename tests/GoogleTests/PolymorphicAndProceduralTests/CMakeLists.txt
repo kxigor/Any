@@ -1,0 +1,2 @@
+add_google_test(polymorphic_and_procedural tests.cpp)
+target_include_directories(polymorphic_and_procedural PRIVATE ${CMAKE_SOURCE_DIR}/include)

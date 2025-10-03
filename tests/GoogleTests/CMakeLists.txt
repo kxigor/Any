@@ -1,0 +1,4 @@
+include(test_functions.cmake)
+
+add_subdirectory(PolymorphicAndProceduralTests)
+add_subdirectory(StatefulTests)
