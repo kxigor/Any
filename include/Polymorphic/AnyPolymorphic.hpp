@@ -31,8 +31,8 @@ class Any {
   };
 
  public:
-  struct BadCast : public std::bad_any_cast {
-    using std::bad_any_cast::bad_any_cast;
+  struct BadCast : public std::bad_cast {
+    using std::bad_cast::bad_cast;
   };
 
   /*==================== Member functions ====================*/

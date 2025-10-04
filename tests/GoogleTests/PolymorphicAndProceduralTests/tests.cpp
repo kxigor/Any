@@ -6,6 +6,8 @@
 #include "Polymorphic/AnyPolymorphic.hpp"
 #include "Procedural/AnyProcedural.hpp"
 
+using TestingAnyT = Any::Polymorphic::Any;
+
 struct TestStruct {
   int id;
   std::string name;
@@ -61,20 +63,20 @@ class AnyTest : public ::testing::Test {
 /* ==================== ТЕСТЫ КОНСТРУКТОРОВ ==================== */
 
 TEST_F(AnyTest, DefaultConstructor) {
-  Any::Polymorphic::Any any;
+  TestingAnyT any;
   EXPECT_FALSE(any.HasValue());
   EXPECT_EQ(any.Type(), typeid(void));
 }
 
 TEST_F(AnyTest, ValueConstructorWithBuiltInType) {
-  Any::Polymorphic::Any any(42);
+  TestingAnyT any(42);
   EXPECT_TRUE(any.HasValue());
   EXPECT_EQ(any.Type(), typeid(int));
   EXPECT_EQ(any.AnyCast<int>(), 42);
 }
 
 TEST_F(AnyTest, ValueConstructorWithString) {
-  Any::Polymorphic::Any any(std::string("hello"));
+  TestingAnyT any(std::string("hello"));
   EXPECT_TRUE(any.HasValue());
   EXPECT_EQ(any.Type(), typeid(std::string));
   EXPECT_EQ(any.AnyCast<std::string>(), "hello");
@@ -82,22 +84,22 @@ TEST_F(AnyTest, ValueConstructorWithString) {
 
 TEST_F(AnyTest, ValueConstructorWithClass) {
   TestStruct obj(123, "test");
-  Any::Polymorphic::Any any(obj);
+  TestingAnyT any(obj);
   EXPECT_TRUE(any.HasValue());
   EXPECT_EQ(any.Type(), typeid(TestStruct));
   EXPECT_EQ(any.AnyCast<TestStruct>(), obj);
 }
 
 TEST_F(AnyTest, ValueConstructorMovesRvalue) {
-  Any::Polymorphic::Any any(TestStruct(456, "move"));
+  TestingAnyT any(TestStruct(456, "move"));
   EXPECT_TRUE(any.HasValue());
   EXPECT_EQ(any.Type(), typeid(TestStruct));
   EXPECT_EQ(any.AnyCast<TestStruct>().id, 456);
 }
 
 TEST_F(AnyTest, CopyConstructor) {
-  Any::Polymorphic::Any original(100);
-  Any::Polymorphic::Any copy(original);
+  TestingAnyT original(100);
+  TestingAnyT copy(original);
 
   EXPECT_TRUE(original.HasValue());
   EXPECT_TRUE(copy.HasValue());
@@ -113,8 +115,8 @@ TEST_F(AnyTest, CopyConstructor) {
 }
 
 TEST_F(AnyTest, CopyConstructorWithEmpty) {
-  Any::Polymorphic::Any original;
-  Any::Polymorphic::Any copy(original);
+  TestingAnyT original;
+  TestingAnyT copy(original);
 
   EXPECT_FALSE(original.HasValue());
   EXPECT_FALSE(copy.HasValue());
@@ -123,8 +125,8 @@ TEST_F(AnyTest, CopyConstructorWithEmpty) {
 }
 
 TEST_F(AnyTest, MoveConstructor) {
-  Any::Polymorphic::Any original(3.14);
-  Any::Polymorphic::Any moved(std::move(original));
+  TestingAnyT original(3.14);
+  TestingAnyT moved(std::move(original));
 
   EXPECT_FALSE(original.HasValue());
   EXPECT_TRUE(moved.HasValue());
@@ -133,8 +135,8 @@ TEST_F(AnyTest, MoveConstructor) {
 }
 
 TEST_F(AnyTest, MoveConstructorWithEmpty) {
-  Any::Polymorphic::Any original;
-  Any::Polymorphic::Any moved(std::move(original));
+  TestingAnyT original;
+  TestingAnyT moved(std::move(original));
 
   EXPECT_FALSE(original.HasValue());
   EXPECT_FALSE(moved.HasValue());
@@ -143,8 +145,8 @@ TEST_F(AnyTest, MoveConstructorWithEmpty) {
 /* ==================== ТЕСТЫ ОПЕРАТОРОВ ПРИСВАИВАНИЯ ==================== */
 
 TEST_F(AnyTest, CopyAssignment) {
-  Any::Polymorphic::Any original(42);
-  Any::Polymorphic::Any assigned;
+  TestingAnyT original(42);
+  TestingAnyT assigned;
 
   assigned = original;
 
@@ -158,7 +160,7 @@ TEST_F(AnyTest, CopyAssignment) {
 }
 
 TEST_F(AnyTest, CopyAssignmentSelf) {
-  Any::Polymorphic::Any any(42);
+  TestingAnyT any(42);
   any = any;  // self-assignment
 
   EXPECT_TRUE(any.HasValue());
@@ -166,8 +168,8 @@ TEST_F(AnyTest, CopyAssignmentSelf) {
 }
 
 TEST_F(AnyTest, CopyAssignmentWithEmpty) {
-  Any::Polymorphic::Any original(42);
-  Any::Polymorphic::Any empty;
+  TestingAnyT original(42);
+  TestingAnyT empty;
 
   empty = original;
 
@@ -176,8 +178,8 @@ TEST_F(AnyTest, CopyAssignmentWithEmpty) {
 }
 
 TEST_F(AnyTest, CopyAssignmentFromEmpty) {
-  Any::Polymorphic::Any original(42);
-  Any::Polymorphic::Any empty;
+  TestingAnyT original(42);
+  TestingAnyT empty;
 
   original = empty;
 
@@ -186,8 +188,8 @@ TEST_F(AnyTest, CopyAssignmentFromEmpty) {
 }
 
 TEST_F(AnyTest, MoveAssignment) {
-  Any::Polymorphic::Any original("test");
-  Any::Polymorphic::Any assigned;
+  TestingAnyT original("test");
+  TestingAnyT assigned;
 
   assigned = std::move(original);
 
@@ -198,15 +200,15 @@ TEST_F(AnyTest, MoveAssignment) {
 }
 
 TEST_F(AnyTest, MoveAssignmentSelf) {
-  Any::Polymorphic::Any any(42);
+  TestingAnyT any(42);
   any = std::move(any);
 
   SUCCEED();
 }
 
 TEST_F(AnyTest, MoveAssignmentWithEmpty) {
-  Any::Polymorphic::Any original(3.14);
-  Any::Polymorphic::Any empty;
+  TestingAnyT original(3.14);
+  TestingAnyT empty;
 
   empty = std::move(original);
 
@@ -216,8 +218,8 @@ TEST_F(AnyTest, MoveAssignmentWithEmpty) {
 }
 
 TEST_F(AnyTest, MoveAssignmentFromEmpty) {
-  Any::Polymorphic::Any original(42);
-  Any::Polymorphic::Any empty;
+  TestingAnyT original(42);
+  TestingAnyT empty;
 
   original = std::move(empty);
 
@@ -228,7 +230,7 @@ TEST_F(AnyTest, MoveAssignmentFromEmpty) {
 /* ==================== ТЕСТЫ МОДИФИКАТОРОВ ==================== */
 
 TEST_F(AnyTest, EmplaceNewValue) {
-  Any::Polymorphic::Any any;
+  TestingAnyT any;
 
   auto& value = any.Emplace<std::string>("emplaced");
 
@@ -239,7 +241,7 @@ TEST_F(AnyTest, EmplaceNewValue) {
 }
 
 TEST_F(AnyTest, EmplaceOverExistingValue) {
-  Any::Polymorphic::Any any(100);
+  TestingAnyT any(100);
 
   auto& value = any.Emplace<double>(2.71);
 
@@ -250,7 +252,7 @@ TEST_F(AnyTest, EmplaceOverExistingValue) {
 }
 
 TEST_F(AnyTest, EmplaceWithMultipleArgs) {
-  Any::Polymorphic::Any any;
+  TestingAnyT any;
 
   auto& value = any.Emplace<TestStruct>(789, "emplaced");
 
@@ -261,7 +263,7 @@ TEST_F(AnyTest, EmplaceWithMultipleArgs) {
 }
 
 TEST_F(AnyTest, Reset) {
-  Any::Polymorphic::Any any(42);
+  TestingAnyT any(42);
 
   any.Reset();
 
@@ -270,7 +272,7 @@ TEST_F(AnyTest, Reset) {
 }
 
 TEST_F(AnyTest, ResetEmpty) {
-  Any::Polymorphic::Any any;
+  TestingAnyT any;
 
   any.Reset();
 
@@ -278,8 +280,8 @@ TEST_F(AnyTest, ResetEmpty) {
 }
 
 TEST_F(AnyTest, Swap) {
-  Any::Polymorphic::Any a(42);
-  Any::Polymorphic::Any b(std::string("hello"));
+  TestingAnyT a(42);
+  TestingAnyT b(std::string("hello"));
 
   a.Swap(b);
 
@@ -292,8 +294,8 @@ TEST_F(AnyTest, Swap) {
 }
 
 TEST_F(AnyTest, SwapWithEmpty) {
-  Any::Polymorphic::Any a(42);
-  Any::Polymorphic::Any b;
+  TestingAnyT a(42);
+  TestingAnyT b;
 
   a.Swap(b);
 
@@ -303,8 +305,8 @@ TEST_F(AnyTest, SwapWithEmpty) {
 }
 
 TEST_F(AnyTest, SwapBothEmpty) {
-  Any::Polymorphic::Any a;
-  Any::Polymorphic::Any b;
+  TestingAnyT a;
+  TestingAnyT b;
 
   a.Swap(b);
 
@@ -315,18 +317,18 @@ TEST_F(AnyTest, SwapBothEmpty) {
 /* ==================== ТЕСТЫ НАБЛЮДАТЕЛЕЙ ==================== */
 
 TEST_F(AnyTest, HasValue) {
-  Any::Polymorphic::Any empty;
-  Any::Polymorphic::Any with_value(42);
+  TestingAnyT empty;
+  TestingAnyT with_value(42);
 
   EXPECT_FALSE(empty.HasValue());
   EXPECT_TRUE(with_value.HasValue());
 }
 
 TEST_F(AnyTest, Type) {
-  Any::Polymorphic::Any empty;
-  Any::Polymorphic::Any int_any(42);
-  Any::Polymorphic::Any string_any(std::string("test"));
-  Any::Polymorphic::Any double_any(3.14);
+  TestingAnyT empty;
+  TestingAnyT int_any(42);
+  TestingAnyT string_any(std::string("test"));
+  TestingAnyT double_any(3.14);
 
   EXPECT_EQ(empty.Type(), typeid(void));
   EXPECT_EQ(int_any.Type(), typeid(int));
@@ -335,7 +337,7 @@ TEST_F(AnyTest, Type) {
 }
 
 TEST_F(AnyTest, AnyCastCorrectType) {
-  Any::Polymorphic::Any any(42);
+  TestingAnyT any(42);
 
   int& value = any.AnyCast<int>();
   EXPECT_EQ(value, 42);
@@ -345,31 +347,31 @@ TEST_F(AnyTest, AnyCastCorrectType) {
 }
 
 TEST_F(AnyTest, AnyCastConstCorrectType) {
-  const Any::Polymorphic::Any any(42);
+  const TestingAnyT any(42);
 
   const int& value = any.AnyCast<int>();
   EXPECT_EQ(value, 42);
 }
 
 TEST_F(AnyTest, AnyCastWrongType) {
-  Any::Polymorphic::Any any(42);
+  TestingAnyT any(42);
 
   EXPECT_THROW(std::ignore = any.AnyCast<std::string>(),
-               Any::Polymorphic::Any::BadCast);
+               TestingAnyT::BadCast);
 }
 
 TEST_F(AnyTest, AnyCastEmpty) {
-  Any::Polymorphic::Any any;
+  TestingAnyT any;
 
   EXPECT_THROW(std::ignore = any.AnyCast<int>(),
-               Any::Polymorphic::Any::BadCast);
+               TestingAnyT::BadCast);
 }
 
 /* ==================== ТЕСТЫ ВРЕМЕНИ ЖИЗНИ ==================== */
 
 TEST_F(AnyTest, LifetimeManagement) {
   {
-    Any::Polymorphic::Any any(LifetimeTracker(42));
+    TestingAnyT any(LifetimeTracker(42));
     EXPECT_EQ(LifetimeTracker::constructor_count, 2);
     EXPECT_EQ(LifetimeTracker::destructor_count, 1);
   }
@@ -381,10 +383,10 @@ TEST_F(AnyTest, CopyLifetime) {
   LifetimeTracker::reset();
 
   {
-    Any::Polymorphic::Any original(tracker);
+    TestingAnyT original(tracker);
     EXPECT_EQ(LifetimeTracker::copy_count, 1);
 
-    Any::Polymorphic::Any copy = original;
+    TestingAnyT copy = original;
     EXPECT_EQ(LifetimeTracker::copy_count, 2);
   }
 
@@ -396,10 +398,10 @@ TEST_F(AnyTest, MoveLifetime) {
   LifetimeTracker::reset();
 
   {
-    Any::Polymorphic::Any original(std::move(tracker));
+    TestingAnyT original(std::move(tracker));
     EXPECT_EQ(LifetimeTracker::move_count, 1);
 
-    Any::Polymorphic::Any moved = std::move(original);
+    TestingAnyT moved = std::move(original);
     EXPECT_EQ(LifetimeTracker::copy_count, 0);
   }
 
@@ -410,7 +412,7 @@ TEST_F(AnyTest, MoveLifetime) {
 
 TEST_F(AnyTest, WithVector) {
   std::vector<int> vec{1, 2, 3};
-  Any::Polymorphic::Any any(vec);
+  TestingAnyT any(vec);
 
   auto& stored_vec = any.AnyCast<std::vector<int>>();
   EXPECT_EQ(stored_vec.size(), 3);
@@ -422,7 +424,7 @@ TEST_F(AnyTest, WithVector) {
 
 TEST_F(AnyTest, WithPointer) {
   int value = 42;
-  Any::Polymorphic::Any any(&value);
+  TestingAnyT any(&value);
 
   int* ptr = any.AnyCast<int*>();
   EXPECT_EQ(ptr, &value);
@@ -431,7 +433,7 @@ TEST_F(AnyTest, WithPointer) {
 
 TEST_F(AnyTest, WithConstType) {
   const int value = 100;
-  Any::Polymorphic::Any any(value);
+  TestingAnyT any(value);
 
   EXPECT_EQ(any.AnyCast<int>(), 100);
 }
@@ -440,10 +442,10 @@ TEST_F(AnyTest, WithConstType) {
 
 TEST_F(AnyTest, ExceptionSafetyOnCopy) {
   // Этот тест проверяет, что копирование сохраняет сильную гарантию исключений
-  Any::Polymorphic::Any original(42);
+  TestingAnyT original(42);
 
   try {
-    Any::Polymorphic::Any copy = original;
+    TestingAnyT copy = original;
     SUCCEED();  // Если не брошено исключение
   } catch (...) {
     FAIL() << "Copy constructor should not throw for simple types";
@@ -453,7 +455,7 @@ TEST_F(AnyTest, ExceptionSafetyOnCopy) {
 /* ==================== КОМПЛЕКСНЫЕ СЦЕНАРИИ ==================== */
 
 TEST_F(AnyTest, ReassignDifferentTypes) {
-  Any::Polymorphic::Any any;
+  TestingAnyT any;
 
   any = 42;
   EXPECT_EQ(any.Type(), typeid(int));
@@ -472,7 +474,7 @@ TEST_F(AnyTest, ReassignDifferentTypes) {
 }
 
 TEST_F(AnyTest, AnyInContainer) {
-  std::vector<Any::Polymorphic::Any> container;
+  std::vector<TestingAnyT> container;
 
   container.emplace_back(42);
   container.emplace_back(std::string("test"));
@@ -483,7 +485,7 @@ TEST_F(AnyTest, AnyInContainer) {
   EXPECT_EQ(container[1].AnyCast<std::string>(), "test");
   EXPECT_EQ(container[2].AnyCast<TestStruct>().id, 1);
 
-  std::vector<Any::Polymorphic::Any> copy = container;
+  std::vector<TestingAnyT> copy = container;
   EXPECT_EQ(copy[0].AnyCast<int>(), 42);
   EXPECT_EQ(copy[1].AnyCast<std::string>(), "test");
 }
