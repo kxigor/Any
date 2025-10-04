@@ -6,8 +6,6 @@
 #include "Polymorphic/AnyPolymorphic.hpp"
 #include "Procedural/AnyProcedural.hpp"
 
-using TestingAnyT = Any::Polymorphic::Any;
-
 struct TestStruct {
   int id;
   std::string name;
@@ -53,70 +51,92 @@ int LifetimeTracker::destructor_count = 0;
 int LifetimeTracker::copy_count = 0;
 int LifetimeTracker::move_count = 0;
 
+// Определяем типы для параметризованного тестирования
+template <typename T>
 class AnyTest : public ::testing::Test {
  protected:
   void SetUp() override { LifetimeTracker::reset(); }
-
   void TearDown() override { LifetimeTracker::reset(); }
+
+  // Псевдоним для текущего типа Any
+  using AnyType = T;
 };
+
+// Список типов для тестирования
+using AnyTypes = ::testing::Types<Any::Polymorphic::Any, Any::Procedural::Any>;
+TYPED_TEST_SUITE(AnyTest, AnyTypes);
 
 /* ==================== ТЕСТЫ КОНСТРУКТОРОВ ==================== */
 
-TEST_F(AnyTest, DefaultConstructor) {
-  TestingAnyT any;
+TYPED_TEST(AnyTest, DefaultConstructor) {
+  using AnyType = typename TestFixture::AnyType;
+
+  AnyType any;
   EXPECT_FALSE(any.HasValue());
   EXPECT_EQ(any.Type(), typeid(void));
 }
 
-TEST_F(AnyTest, ValueConstructorWithBuiltInType) {
-  TestingAnyT any(42);
+TYPED_TEST(AnyTest, ValueConstructorWithBuiltInType) {
+  using AnyType = typename TestFixture::AnyType;
+
+  AnyType any(42);
   EXPECT_TRUE(any.HasValue());
   EXPECT_EQ(any.Type(), typeid(int));
-  EXPECT_EQ(any.AnyCast<int>(), 42);
+  EXPECT_EQ(any.template AnyCast<int>(), 42);
 }
 
-TEST_F(AnyTest, ValueConstructorWithString) {
-  TestingAnyT any(std::string("hello"));
+TYPED_TEST(AnyTest, ValueConstructorWithString) {
+  using AnyType = typename TestFixture::AnyType;
+
+  AnyType any(std::string("hello"));
   EXPECT_TRUE(any.HasValue());
   EXPECT_EQ(any.Type(), typeid(std::string));
-  EXPECT_EQ(any.AnyCast<std::string>(), "hello");
+  EXPECT_EQ(any.template AnyCast<std::string>(), "hello");
 }
 
-TEST_F(AnyTest, ValueConstructorWithClass) {
+TYPED_TEST(AnyTest, ValueConstructorWithClass) {
+  using AnyType = typename TestFixture::AnyType;
+
   TestStruct obj(123, "test");
-  TestingAnyT any(obj);
+  AnyType any(obj);
   EXPECT_TRUE(any.HasValue());
   EXPECT_EQ(any.Type(), typeid(TestStruct));
-  EXPECT_EQ(any.AnyCast<TestStruct>(), obj);
+  EXPECT_EQ(any.template AnyCast<TestStruct>(), obj);
 }
 
-TEST_F(AnyTest, ValueConstructorMovesRvalue) {
-  TestingAnyT any(TestStruct(456, "move"));
+TYPED_TEST(AnyTest, ValueConstructorMovesRvalue) {
+  using AnyType = typename TestFixture::AnyType;
+
+  AnyType any(TestStruct(456, "move"));
   EXPECT_TRUE(any.HasValue());
   EXPECT_EQ(any.Type(), typeid(TestStruct));
-  EXPECT_EQ(any.AnyCast<TestStruct>().id, 456);
+  EXPECT_EQ(any.template AnyCast<TestStruct>().id, 456);
 }
 
-TEST_F(AnyTest, CopyConstructor) {
-  TestingAnyT original(100);
-  TestingAnyT copy(original);
+TYPED_TEST(AnyTest, CopyConstructor) {
+  using AnyType = typename TestFixture::AnyType;
+
+  AnyType original(100);
+  AnyType copy(original);
 
   EXPECT_TRUE(original.HasValue());
   EXPECT_TRUE(copy.HasValue());
   EXPECT_EQ(original.Type(), typeid(int));
   EXPECT_EQ(copy.Type(), typeid(int));
-  EXPECT_EQ(original.AnyCast<int>(), 100);
-  EXPECT_EQ(copy.AnyCast<int>(), 100);
+  EXPECT_EQ(original.template AnyCast<int>(), 100);
+  EXPECT_EQ(copy.template AnyCast<int>(), 100);
 
   // Проверяем, что это независимые копии
-  original.AnyCast<int>() = 200;
-  EXPECT_EQ(original.AnyCast<int>(), 200);
-  EXPECT_EQ(copy.AnyCast<int>(), 100);
+  original.template AnyCast<int>() = 200;
+  EXPECT_EQ(original.template AnyCast<int>(), 200);
+  EXPECT_EQ(copy.template AnyCast<int>(), 100);
 }
 
-TEST_F(AnyTest, CopyConstructorWithEmpty) {
-  TestingAnyT original;
-  TestingAnyT copy(original);
+TYPED_TEST(AnyTest, CopyConstructorWithEmpty) {
+  using AnyType = typename TestFixture::AnyType;
+
+  AnyType original;
+  AnyType copy(original);
 
   EXPECT_FALSE(original.HasValue());
   EXPECT_FALSE(copy.HasValue());
@@ -124,19 +144,23 @@ TEST_F(AnyTest, CopyConstructorWithEmpty) {
   EXPECT_EQ(copy.Type(), typeid(void));
 }
 
-TEST_F(AnyTest, MoveConstructor) {
-  TestingAnyT original(3.14);
-  TestingAnyT moved(std::move(original));
+TYPED_TEST(AnyTest, MoveConstructor) {
+  using AnyType = typename TestFixture::AnyType;
+
+  AnyType original(3.14);
+  AnyType moved(std::move(original));
 
   EXPECT_FALSE(original.HasValue());
   EXPECT_TRUE(moved.HasValue());
   EXPECT_EQ(moved.Type(), typeid(double));
-  EXPECT_DOUBLE_EQ(moved.AnyCast<double>(), 3.14);
+  EXPECT_DOUBLE_EQ(moved.template AnyCast<double>(), 3.14);
 }
 
-TEST_F(AnyTest, MoveConstructorWithEmpty) {
-  TestingAnyT original;
-  TestingAnyT moved(std::move(original));
+TYPED_TEST(AnyTest, MoveConstructorWithEmpty) {
+  using AnyType = typename TestFixture::AnyType;
+
+  AnyType original;
+  AnyType moved(std::move(original));
 
   EXPECT_FALSE(original.HasValue());
   EXPECT_FALSE(moved.HasValue());
@@ -144,42 +168,50 @@ TEST_F(AnyTest, MoveConstructorWithEmpty) {
 
 /* ==================== ТЕСТЫ ОПЕРАТОРОВ ПРИСВАИВАНИЯ ==================== */
 
-TEST_F(AnyTest, CopyAssignment) {
-  TestingAnyT original(42);
-  TestingAnyT assigned;
+TYPED_TEST(AnyTest, CopyAssignment) {
+  using AnyType = typename TestFixture::AnyType;
+
+  AnyType original(42);
+  AnyType assigned;
 
   assigned = original;
 
   EXPECT_TRUE(original.HasValue());
   EXPECT_TRUE(assigned.HasValue());
-  EXPECT_EQ(original.AnyCast<int>(), 42);
-  EXPECT_EQ(assigned.AnyCast<int>(), 42);
+  EXPECT_EQ(original.template AnyCast<int>(), 42);
+  EXPECT_EQ(assigned.template AnyCast<int>(), 42);
 
-  original.AnyCast<int>() = 100;
-  EXPECT_EQ(assigned.AnyCast<int>(), 42);
+  original.template AnyCast<int>() = 100;
+  EXPECT_EQ(assigned.template AnyCast<int>(), 42);
 }
 
-TEST_F(AnyTest, CopyAssignmentSelf) {
-  TestingAnyT any(42);
+TYPED_TEST(AnyTest, CopyAssignmentSelf) {
+  using AnyType = typename TestFixture::AnyType;
+
+  AnyType any(42);
   any = any;  // self-assignment
 
   EXPECT_TRUE(any.HasValue());
-  EXPECT_EQ(any.AnyCast<int>(), 42);
+  EXPECT_EQ(any.template AnyCast<int>(), 42);
 }
 
-TEST_F(AnyTest, CopyAssignmentWithEmpty) {
-  TestingAnyT original(42);
-  TestingAnyT empty;
+TYPED_TEST(AnyTest, CopyAssignmentWithEmpty) {
+  using AnyType = typename TestFixture::AnyType;
+
+  AnyType original(42);
+  AnyType empty;
 
   empty = original;
 
   EXPECT_TRUE(empty.HasValue());
-  EXPECT_EQ(empty.AnyCast<int>(), 42);
+  EXPECT_EQ(empty.template AnyCast<int>(), 42);
 }
 
-TEST_F(AnyTest, CopyAssignmentFromEmpty) {
-  TestingAnyT original(42);
-  TestingAnyT empty;
+TYPED_TEST(AnyTest, CopyAssignmentFromEmpty) {
+  using AnyType = typename TestFixture::AnyType;
+
+  AnyType original(42);
+  AnyType empty;
 
   original = empty;
 
@@ -187,39 +219,47 @@ TEST_F(AnyTest, CopyAssignmentFromEmpty) {
   EXPECT_FALSE(empty.HasValue());
 }
 
-TEST_F(AnyTest, MoveAssignment) {
-  TestingAnyT original("test");
-  TestingAnyT assigned;
+TYPED_TEST(AnyTest, MoveAssignment) {
+  using AnyType = typename TestFixture::AnyType;
+
+  AnyType original("test");
+  AnyType assigned;
 
   assigned = std::move(original);
 
   EXPECT_FALSE(original.HasValue());
   EXPECT_TRUE(assigned.HasValue());
   EXPECT_EQ(assigned.Type(), typeid(const char*));
-  EXPECT_STREQ(assigned.AnyCast<const char*>(), "test");
+  EXPECT_STREQ(assigned.template AnyCast<const char*>(), "test");
 }
 
-TEST_F(AnyTest, MoveAssignmentSelf) {
-  TestingAnyT any(42);
+TYPED_TEST(AnyTest, MoveAssignmentSelf) {
+  using AnyType = typename TestFixture::AnyType;
+
+  AnyType any(42);
   any = std::move(any);
 
   SUCCEED();
 }
 
-TEST_F(AnyTest, MoveAssignmentWithEmpty) {
-  TestingAnyT original(3.14);
-  TestingAnyT empty;
+TYPED_TEST(AnyTest, MoveAssignmentWithEmpty) {
+  using AnyType = typename TestFixture::AnyType;
+
+  AnyType original(3.14);
+  AnyType empty;
 
   empty = std::move(original);
 
   EXPECT_FALSE(original.HasValue());
   EXPECT_TRUE(empty.HasValue());
-  EXPECT_DOUBLE_EQ(empty.AnyCast<double>(), 3.14);
+  EXPECT_DOUBLE_EQ(empty.template AnyCast<double>(), 3.14);
 }
 
-TEST_F(AnyTest, MoveAssignmentFromEmpty) {
-  TestingAnyT original(42);
-  TestingAnyT empty;
+TYPED_TEST(AnyTest, MoveAssignmentFromEmpty) {
+  using AnyType = typename TestFixture::AnyType;
+
+  AnyType original(42);
+  AnyType empty;
 
   original = std::move(empty);
 
@@ -229,32 +269,38 @@ TEST_F(AnyTest, MoveAssignmentFromEmpty) {
 
 /* ==================== ТЕСТЫ МОДИФИКАТОРОВ ==================== */
 
-TEST_F(AnyTest, EmplaceNewValue) {
-  TestingAnyT any;
+TYPED_TEST(AnyTest, EmplaceNewValue) {
+  using AnyType = typename TestFixture::AnyType;
 
-  auto& value = any.Emplace<std::string>("emplaced");
+  AnyType any;
+
+  auto& value = any.template Emplace<std::string>("emplaced");
 
   EXPECT_TRUE(any.HasValue());
   EXPECT_EQ(any.Type(), typeid(std::string));
   EXPECT_EQ(value, "emplaced");
-  EXPECT_EQ(any.AnyCast<std::string>(), "emplaced");
+  EXPECT_EQ(any.template AnyCast<std::string>(), "emplaced");
 }
 
-TEST_F(AnyTest, EmplaceOverExistingValue) {
-  TestingAnyT any(100);
+TYPED_TEST(AnyTest, EmplaceOverExistingValue) {
+  using AnyType = typename TestFixture::AnyType;
 
-  auto& value = any.Emplace<double>(2.71);
+  AnyType any(100);
+
+  auto& value = any.template Emplace<double>(2.71);
 
   EXPECT_TRUE(any.HasValue());
   EXPECT_EQ(any.Type(), typeid(double));
   EXPECT_DOUBLE_EQ(value, 2.71);
-  EXPECT_DOUBLE_EQ(any.AnyCast<double>(), 2.71);
+  EXPECT_DOUBLE_EQ(any.template AnyCast<double>(), 2.71);
 }
 
-TEST_F(AnyTest, EmplaceWithMultipleArgs) {
-  TestingAnyT any;
+TYPED_TEST(AnyTest, EmplaceWithMultipleArgs) {
+  using AnyType = typename TestFixture::AnyType;
 
-  auto& value = any.Emplace<TestStruct>(789, "emplaced");
+  AnyType any;
+
+  auto& value = any.template Emplace<TestStruct>(789, "emplaced");
 
   EXPECT_TRUE(any.HasValue());
   EXPECT_EQ(any.Type(), typeid(TestStruct));
@@ -262,8 +308,10 @@ TEST_F(AnyTest, EmplaceWithMultipleArgs) {
   EXPECT_EQ(value.name, "emplaced");
 }
 
-TEST_F(AnyTest, Reset) {
-  TestingAnyT any(42);
+TYPED_TEST(AnyTest, Reset) {
+  using AnyType = typename TestFixture::AnyType;
+
+  AnyType any(42);
 
   any.Reset();
 
@@ -271,17 +319,21 @@ TEST_F(AnyTest, Reset) {
   EXPECT_EQ(any.Type(), typeid(void));
 }
 
-TEST_F(AnyTest, ResetEmpty) {
-  TestingAnyT any;
+TYPED_TEST(AnyTest, ResetEmpty) {
+  using AnyType = typename TestFixture::AnyType;
+
+  AnyType any;
 
   any.Reset();
 
   EXPECT_FALSE(any.HasValue());
 }
 
-TEST_F(AnyTest, Swap) {
-  TestingAnyT a(42);
-  TestingAnyT b(std::string("hello"));
+TYPED_TEST(AnyTest, Swap) {
+  using AnyType = typename TestFixture::AnyType;
+
+  AnyType a(42);
+  AnyType b(std::string("hello"));
 
   a.Swap(b);
 
@@ -289,24 +341,28 @@ TEST_F(AnyTest, Swap) {
   EXPECT_TRUE(b.HasValue());
   EXPECT_EQ(a.Type(), typeid(std::string));
   EXPECT_EQ(b.Type(), typeid(int));
-  EXPECT_EQ(a.AnyCast<std::string>(), "hello");
-  EXPECT_EQ(b.AnyCast<int>(), 42);
+  EXPECT_EQ(a.template AnyCast<std::string>(), "hello");
+  EXPECT_EQ(b.template AnyCast<int>(), 42);
 }
 
-TEST_F(AnyTest, SwapWithEmpty) {
-  TestingAnyT a(42);
-  TestingAnyT b;
+TYPED_TEST(AnyTest, SwapWithEmpty) {
+  using AnyType = typename TestFixture::AnyType;
+
+  AnyType a(42);
+  AnyType b;
 
   a.Swap(b);
 
   EXPECT_FALSE(a.HasValue());
   EXPECT_TRUE(b.HasValue());
-  EXPECT_EQ(b.AnyCast<int>(), 42);
+  EXPECT_EQ(b.template AnyCast<int>(), 42);
 }
 
-TEST_F(AnyTest, SwapBothEmpty) {
-  TestingAnyT a;
-  TestingAnyT b;
+TYPED_TEST(AnyTest, SwapBothEmpty) {
+  using AnyType = typename TestFixture::AnyType;
+
+  AnyType a;
+  AnyType b;
 
   a.Swap(b);
 
@@ -316,19 +372,23 @@ TEST_F(AnyTest, SwapBothEmpty) {
 
 /* ==================== ТЕСТЫ НАБЛЮДАТЕЛЕЙ ==================== */
 
-TEST_F(AnyTest, HasValue) {
-  TestingAnyT empty;
-  TestingAnyT with_value(42);
+TYPED_TEST(AnyTest, HasValue) {
+  using AnyType = typename TestFixture::AnyType;
+
+  AnyType empty;
+  AnyType with_value(42);
 
   EXPECT_FALSE(empty.HasValue());
   EXPECT_TRUE(with_value.HasValue());
 }
 
-TEST_F(AnyTest, Type) {
-  TestingAnyT empty;
-  TestingAnyT int_any(42);
-  TestingAnyT string_any(std::string("test"));
-  TestingAnyT double_any(3.14);
+TYPED_TEST(AnyTest, Type) {
+  using AnyType = typename TestFixture::AnyType;
+
+  AnyType empty;
+  AnyType int_any(42);
+  AnyType string_any(std::string("test"));
+  AnyType double_any(3.14);
 
   EXPECT_EQ(empty.Type(), typeid(void));
   EXPECT_EQ(int_any.Type(), typeid(int));
@@ -336,72 +396,86 @@ TEST_F(AnyTest, Type) {
   EXPECT_EQ(double_any.Type(), typeid(double));
 }
 
-TEST_F(AnyTest, AnyCastCorrectType) {
-  TestingAnyT any(42);
+TYPED_TEST(AnyTest, AnyCastCorrectType) {
+  using AnyType = typename TestFixture::AnyType;
 
-  int& value = any.AnyCast<int>();
+  AnyType any(42);
+
+  int& value = any.template AnyCast<int>();
   EXPECT_EQ(value, 42);
 
   value = 100;
-  EXPECT_EQ(any.AnyCast<int>(), 100);
+  EXPECT_EQ(any.template AnyCast<int>(), 100);
 }
 
-TEST_F(AnyTest, AnyCastConstCorrectType) {
-  const TestingAnyT any(42);
+TYPED_TEST(AnyTest, AnyCastConstCorrectType) {
+  using AnyType = typename TestFixture::AnyType;
 
-  const int& value = any.AnyCast<int>();
+  const AnyType any(42);
+
+  const int& value = any.template AnyCast<int>();
   EXPECT_EQ(value, 42);
 }
 
-TEST_F(AnyTest, AnyCastWrongType) {
-  TestingAnyT any(42);
+TYPED_TEST(AnyTest, AnyCastWrongType) {
+  using AnyType = typename TestFixture::AnyType;
 
-  EXPECT_THROW(std::ignore = any.AnyCast<std::string>(),
-               TestingAnyT::BadCast);
+  AnyType any(42);
+
+  EXPECT_THROW(std::ignore = any.template AnyCast<std::string>(),
+               typename AnyType::BadCast);
 }
 
-TEST_F(AnyTest, AnyCastEmpty) {
-  TestingAnyT any;
+TYPED_TEST(AnyTest, AnyCastEmpty) {
+  using AnyType = typename TestFixture::AnyType;
 
-  EXPECT_THROW(std::ignore = any.AnyCast<int>(),
-               TestingAnyT::BadCast);
+  AnyType any;
+
+  EXPECT_THROW(std::ignore = any.template AnyCast<int>(),
+               typename AnyType::BadCast);
 }
 
 /* ==================== ТЕСТЫ ВРЕМЕНИ ЖИЗНИ ==================== */
 
-TEST_F(AnyTest, LifetimeManagement) {
+TYPED_TEST(AnyTest, LifetimeManagement) {
+  using AnyType = typename TestFixture::AnyType;
+
   {
-    TestingAnyT any(LifetimeTracker(42));
+    AnyType any(LifetimeTracker(42));
     EXPECT_EQ(LifetimeTracker::constructor_count, 2);
     EXPECT_EQ(LifetimeTracker::destructor_count, 1);
   }
   EXPECT_EQ(LifetimeTracker::destructor_count, 2);
 }
 
-TEST_F(AnyTest, CopyLifetime) {
+TYPED_TEST(AnyTest, CopyLifetime) {
+  using AnyType = typename TestFixture::AnyType;
+
   LifetimeTracker tracker(42);
   LifetimeTracker::reset();
 
   {
-    TestingAnyT original(tracker);
+    AnyType original(tracker);
     EXPECT_EQ(LifetimeTracker::copy_count, 1);
 
-    TestingAnyT copy = original;
+    AnyType copy = original;
     EXPECT_EQ(LifetimeTracker::copy_count, 2);
   }
 
   EXPECT_EQ(LifetimeTracker::destructor_count, 2);
 }
 
-TEST_F(AnyTest, MoveLifetime) {
+TYPED_TEST(AnyTest, MoveLifetime) {
+  using AnyType = typename TestFixture::AnyType;
+
   LifetimeTracker tracker(42);
   LifetimeTracker::reset();
 
   {
-    TestingAnyT original(std::move(tracker));
+    AnyType original(std::move(tracker));
     EXPECT_EQ(LifetimeTracker::move_count, 1);
 
-    TestingAnyT moved = std::move(original);
+    AnyType moved = std::move(original);
     EXPECT_EQ(LifetimeTracker::copy_count, 0);
   }
 
@@ -410,11 +484,13 @@ TEST_F(AnyTest, MoveLifetime) {
 
 /* ==================== ТЕСТЫ РАЗНЫХ ТИПОВ ==================== */
 
-TEST_F(AnyTest, WithVector) {
-  std::vector<int> vec{1, 2, 3};
-  TestingAnyT any(vec);
+TYPED_TEST(AnyTest, WithVector) {
+  using AnyType = typename TestFixture::AnyType;
 
-  auto& stored_vec = any.AnyCast<std::vector<int>>();
+  std::vector<int> vec{1, 2, 3};
+  AnyType any(vec);
+
+  auto& stored_vec = any.template AnyCast<std::vector<int>>();
   EXPECT_EQ(stored_vec.size(), 3);
   EXPECT_EQ(stored_vec[0], 1);
 
@@ -422,30 +498,36 @@ TEST_F(AnyTest, WithVector) {
   EXPECT_EQ(stored_vec.size(), 4);
 }
 
-TEST_F(AnyTest, WithPointer) {
-  int value = 42;
-  TestingAnyT any(&value);
+TYPED_TEST(AnyTest, WithPointer) {
+  using AnyType = typename TestFixture::AnyType;
 
-  int* ptr = any.AnyCast<int*>();
+  int value = 42;
+  AnyType any(&value);
+
+  int* ptr = any.template AnyCast<int*>();
   EXPECT_EQ(ptr, &value);
   EXPECT_EQ(*ptr, 42);
 }
 
-TEST_F(AnyTest, WithConstType) {
-  const int value = 100;
-  TestingAnyT any(value);
+TYPED_TEST(AnyTest, WithConstType) {
+  using AnyType = typename TestFixture::AnyType;
 
-  EXPECT_EQ(any.AnyCast<int>(), 100);
+  const int value = 100;
+  AnyType any(value);
+
+  EXPECT_EQ(any.template AnyCast<int>(), 100);
 }
 
 /* ==================== ТЕСТЫ ИСКЛЮЧЕНИЙ ==================== */
 
-TEST_F(AnyTest, ExceptionSafetyOnCopy) {
+TYPED_TEST(AnyTest, ExceptionSafetyOnCopy) {
+  using AnyType = typename TestFixture::AnyType;
+
   // Этот тест проверяет, что копирование сохраняет сильную гарантию исключений
-  TestingAnyT original(42);
+  AnyType original(42);
 
   try {
-    TestingAnyT copy = original;
+    AnyType copy = original;
     SUCCEED();  // Если не брошено исключение
   } catch (...) {
     FAIL() << "Copy constructor should not throw for simple types";
@@ -454,40 +536,44 @@ TEST_F(AnyTest, ExceptionSafetyOnCopy) {
 
 /* ==================== КОМПЛЕКСНЫЕ СЦЕНАРИИ ==================== */
 
-TEST_F(AnyTest, ReassignDifferentTypes) {
-  TestingAnyT any;
+TYPED_TEST(AnyTest, ReassignDifferentTypes) {
+  using AnyType = typename TestFixture::AnyType;
+
+  AnyType any;
 
   any = 42;
   EXPECT_EQ(any.Type(), typeid(int));
-  EXPECT_EQ(any.AnyCast<int>(), 42);
+  EXPECT_EQ(any.template AnyCast<int>(), 42);
 
   any = std::string("hello");
   EXPECT_EQ(any.Type(), typeid(std::string));
-  EXPECT_EQ(any.AnyCast<std::string>(), "hello");
+  EXPECT_EQ(any.template AnyCast<std::string>(), "hello");
 
   any = 3.14;
   EXPECT_EQ(any.Type(), typeid(double));
-  EXPECT_DOUBLE_EQ(any.AnyCast<double>(), 3.14);
+  EXPECT_DOUBLE_EQ(any.template AnyCast<double>(), 3.14);
 
   any.Reset();
   EXPECT_FALSE(any.HasValue());
 }
 
-TEST_F(AnyTest, AnyInContainer) {
-  std::vector<TestingAnyT> container;
+TYPED_TEST(AnyTest, AnyInContainer) {
+  using AnyType = typename TestFixture::AnyType;
 
-  container.emplace_back(42);
-  container.emplace_back(std::string("test"));
-  container.emplace_back(TestStruct(1, "item"));
+  std::vector<AnyType> container;
+
+  container.template emplace_back(42);
+  container.template emplace_back(std::string("test"));
+  container.template emplace_back(TestStruct(1, "item"));
 
   EXPECT_EQ(container.size(), 3);
-  EXPECT_EQ(container[0].AnyCast<int>(), 42);
-  EXPECT_EQ(container[1].AnyCast<std::string>(), "test");
-  EXPECT_EQ(container[2].AnyCast<TestStruct>().id, 1);
+  EXPECT_EQ(container[0].template AnyCast<int>(), 42);
+  EXPECT_EQ(container[1].template AnyCast<std::string>(), "test");
+  EXPECT_EQ(container[2].template AnyCast<TestStruct>().id, 1);
 
-  std::vector<TestingAnyT> copy = container;
-  EXPECT_EQ(copy[0].AnyCast<int>(), 42);
-  EXPECT_EQ(copy[1].AnyCast<std::string>(), "test");
+  std::vector<AnyType> copy = container;
+  EXPECT_EQ(copy[0].template AnyCast<int>(), 42);
+  EXPECT_EQ(copy[1].template AnyCast<std::string>(), "test");
 }
 
 int main(int argc, char** argv) {

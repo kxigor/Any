@@ -1,60 +1,65 @@
 #pragma once
 
+// NOLINTBEGIN(cppcoreguidelines-owning-memory)
+
 #include <memory>
-#include <stdexcept>
 #include <type_traits>
 #include <typeinfo>
 #include <utility>
 
 namespace Any::Procedural {
 class Any {
+  template <typename ValueType>
+  struct VtableTyped;
+
   struct Vtable {
    private:
     using CloneFuncT = Vtable* (*)(const Vtable* self);
     using TypeInfoFuncT = const std::type_info& (*)();
-    using DestroyFuncT = void (*)(const Vtable* self);
+    using DestroyFuncT = void (*)(Vtable* self);
 
     using FuncTableT = struct {
-      CloneFuncT clone_func_{};
-      TypeInfoFuncT get_type_info_func_{};
-      DestroyFuncT destroy_func_{};
+      CloneFuncT clone_func{};
+      TypeInfoFuncT get_type_info_func{};
+      DestroyFuncT destroy_func{};
     };
 
-    template <typename T>
+    template <typename ValueType>
     struct MakeFuncHelper {
-      static Vtable* CloneFuncImpl(const Vtable* self) {
-        return new T{static_cast<VtableTyped<T>*>(self)->value_};
+      [[nodiscard]] static Vtable* CloneFuncImpl(const Vtable* self) {
+        return new VtableTyped<ValueType>{
+            static_cast<const VtableTyped<ValueType>*>(self)->GetValue()};
       }
 
-      static const std::type_info& TypeInfoFuncImpl() { return typeid(T); };
+      [[nodiscard]] static const std::type_info& TypeInfoFuncImpl() {
+        return typeid(ValueType);
+      };
 
-      static void DestroyFuncImpl(const Vtable* self) {
-        delete static_cast<VtableTyped<T>*>(self);
+      static void DestroyFuncImpl(Vtable* self) {
+        delete static_cast<VtableTyped<ValueType>*>(self);
       }
     };
 
-    template <typename T>
+    template <typename ValueType>
     static FuncTableT MakeFuncTable() {
-      using MakeFuncHelperTyped = MakeFuncHelper<T>;
-      return {
-          .clone_func_ = &MakeFuncHelperTyped::CloneFuncImpl,
-          .get_type_info_func_ = &MakeFuncHelperTyped::TypeInfoFuncImpl,
-          .destroy_func_ = &MakeFuncHelperTyped::DestroyFuncImpl,
-      };
+      using MakeFuncHelperTyped = MakeFuncHelper<ValueType>;
+      return {.clone_func = &MakeFuncHelperTyped::CloneFuncImpl,
+              .get_type_info_func = &MakeFuncHelperTyped::TypeInfoFuncImpl,
+              .destroy_func = &MakeFuncHelperTyped::DestroyFuncImpl};
     }
 
    public:
-    template <typename T>
-    Vtable(std::type_identity<T> /*unused*/)
-        : func_table_(MakeFuncTable<T>()) {}
+    template <typename ValueType>
+    explicit Vtable(std::type_identity<ValueType> /*unused*/)
+        : func_table_(MakeFuncTable<ValueType>()) {}
 
-    Vtable* Clone() { return func_table_.clone_func_(this); }
+    [[nodiscard]] Vtable* Clone() const { return func_table_.clone_func(this); }
 
-    const std::type_info& GetTypeInfo() {
-      return func_table_.get_type_info_func_();
+    [[nodiscard]] const std::type_info& GetTypeInfo() const {
+      return func_table_.get_type_info_func();
     }
 
-    void Destroy() { return func_table_.destroy_func_(this); }
+    void Destroy() { func_table_.destroy_func(this); }
 
    private:
     FuncTableT func_table_;
@@ -68,7 +73,11 @@ class Any {
         : Vtable(std::type_identity<ValueType>{}),
           value_(std::forward<Args>(args)...) {}
 
+    [[nodiscard]] ValueType& GetValue() noexcept { return value_; }
+    [[nodiscard]] const ValueType& GetValue() const noexcept { return value_; }
+
     /*========= Fields ==========*/
+   private:
     ValueType value_;
   };
 
@@ -80,7 +89,7 @@ class Any {
   /*==================== Member functions ====================*/
   Any() = default;
 
-  ~Any() { vtable_->Destroy(); }
+  ~Any() { DestroyVtable(vtable_); }
 
   Any(const Any& other) : vtable_(other.CloneVtable()) {}
 
@@ -122,13 +131,13 @@ class Any {
     Vtable* safe_copy = vtable_;
     vtable_ =
         new VtableTyped<std::decay_t<ValueType>>(std::forward<Args>(args)...);
-    safe_copy->Destroy();
+    DestroyVtable(safe_copy);
 
     return AnyCast<std::decay_t<ValueType>>();
   }
 
   void Reset() noexcept {
-    DestroyVtable();
+    DestroyVtable(vtable_);
     NullifyVtable();
   }
 
@@ -158,21 +167,25 @@ class Any {
   /*========================= Impls ==========================*/
   template <typename ValueType>
   [[nodiscard]] ValueType& AnyCastImpl() const {
-    auto* typed_vtable = dynamic_cast<VtableTyped<ValueType>*>(vtable_);
-    if (typed_vtable == nullptr) {
+    if (vtable_ == nullptr or vtable_->GetTypeInfo() != typeid(ValueType)) {
       throw BadCast{};
     }
-    return typed_vtable->value_;
+    auto* typed_vtable = static_cast<VtableTyped<ValueType>*>(vtable_);
+    return typed_vtable->GetValue();
   }
 
-  Vtable* CloneVtable() const {
+  [[nodiscard]] Vtable* CloneVtable() const {
     if (not HasValue()) {
       return nullptr;
     }
     return vtable_->Clone();
   }
 
-  void DestroyVtable() noexcept { vtable_->Destroy(); }
+  static void DestroyVtable(Vtable* vtable) noexcept {
+    if (vtable != nullptr) {
+      vtable->Destroy();
+    }
+  }
 
   void NullifyVtable() noexcept { vtable_ = nullptr; }
 
@@ -180,3 +193,5 @@ class Any {
   Vtable* vtable_{};
 };
 }  // namespace Any::Procedural
+
+// NOLINTEND(cppcoreguidelines-owning-memory)

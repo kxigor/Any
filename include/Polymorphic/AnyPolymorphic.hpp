@@ -1,7 +1,6 @@
 #pragma once
 
 #include <memory>
-#include <stdexcept>
 #include <type_traits>
 #include <typeinfo>
 #include <utility>
@@ -9,25 +8,61 @@
 namespace Any::Polymorphic {
 class Any {
   /*======================== Helpers =========================*/
+  struct AnyBase;
+
+  using AnyBasePtr = std::unique_ptr<AnyBase>;
+
+  template <typename AnyTypedType, typename... Args>
+  static AnyBasePtr MakeAnyBasePtr(Args&&... args) {
+    return std::make_unique<AnyTypedType>(std::forward<Args>(args)...);
+  }
+
   struct AnyBase {
     /*==== Member functions =====*/
-    virtual AnyBase* Clone() = 0;
-    virtual const std::type_info& GetTypeInfo() const = 0;
+    AnyBase() = default;
+
+    AnyBase(const AnyBase& /*unused*/) = delete;
+    AnyBase(AnyBase&& /*unused*/) = delete;
+
+    AnyBase& operator=(const AnyBase& /*unused*/) = delete;
+    AnyBase& operator=(AnyBase&& /*unused*/) = delete;
+
     virtual ~AnyBase() = default;
+
+    [[nodiscard]] virtual AnyBasePtr Clone() = 0;
+    [[nodiscard]] virtual const std::type_info& GetTypeInfo() const = 0;
   };
 
-  template <typename T>
+  template <typename ValueType>
   struct AnyTyped : AnyBase {
-    template <typename... Args>
     /*==== Member functions =====*/
+    AnyTyped() = default;
+
+    template <typename... Args>
     AnyTyped(Args&&... args) : value_(std::forward<Args>(args)...) {}
 
-    AnyTyped* Clone() override { return new AnyTyped(value_); }
-    const std::type_info& GetTypeInfo() const { return typeid(T); }
+    AnyTyped(const AnyTyped& /*unused*/) = delete;
+    AnyTyped(AnyTyped&& /*unused*/) = delete;
+
+    AnyTyped& operator=(const AnyTyped& /*unused*/) = delete;
+    AnyTyped& operator=(AnyTyped&& /*unused*/) = delete;
+
     ~AnyTyped() override = default;
 
+    [[nodiscard]] AnyBasePtr Clone() override {
+      return MakeAnyBasePtr<AnyTyped>(value_);
+    }
+
+    [[nodiscard]] const std::type_info& GetTypeInfo() const override {
+      return typeid(ValueType);
+    }
+
+    [[nodiscard]] ValueType& GetValue() noexcept { return value_; }
+    [[nodiscard]] const ValueType& GetValue() const noexcept { return value_; }
+
     /*========= Fields ==========*/
-    T value_;
+   private:
+    ValueType value_;
   };
 
  public:
@@ -37,17 +72,16 @@ class Any {
 
   /*==================== Member functions ====================*/
   Any() = default;
-
-  ~Any() { delete base_; }
+  ~Any() = default;
 
   Any(const Any& other) : base_(other.CloneBase()) {}
 
-  Any(Any&& other) noexcept : base_(other.base_) { other.base_ = nullptr; }
+  Any(Any&& other) noexcept : base_(std::move(other.base_)) {}
 
   template <typename ValueType>
   requires(not std::is_same_v<std::decay_t<ValueType>, Any>)
   Any(ValueType&& value)
-      : base_(new AnyTyped<std::decay_t<ValueType>>(
+      : base_(MakeAnyBasePtr<AnyTyped<std::decay_t<ValueType>>>(
             std::forward<ValueType>(value))) {}
 
   Any& operator=(const Any& other) {
@@ -75,17 +109,12 @@ class Any {
   /*======================= Modifiers ========================*/
   template <typename ValueType, typename... Args>
   std::decay_t<ValueType>& Emplace(Args&&... args) {
-    AnyBase* safe_copy = base_;
-    base_ = new AnyTyped<std::decay_t<ValueType>>(std::forward<Args>(args)...);
-    delete safe_copy;
-
+    base_ = MakeAnyBasePtr<AnyTyped<std::decay_t<ValueType>>>(
+        std::forward<Args>(args)...);
     return AnyCast<std::decay_t<ValueType>>();
   }
 
-  void Reset() noexcept {
-    delete base_;
-    base_ = nullptr;
-  }
+  void Reset() noexcept { base_.reset(); }
 
   void Swap(Any& other) noexcept { std::swap(base_, other.base_); }
 
@@ -113,14 +142,13 @@ class Any {
   /*========================= Impls ==========================*/
   template <typename ValueType>
   [[nodiscard]] ValueType& AnyCastImpl() const {
-    auto* typed_base = dynamic_cast<AnyTyped<ValueType>*>(base_);
-    if (typed_base == nullptr) {
+    if (not HasValue() or typeid(ValueType) != Type()) {
       throw BadCast{};
     }
-    return dynamic_cast<AnyTyped<ValueType>*>(base_)->value_;
+    return static_cast<AnyTyped<ValueType>*>(base_.get())->GetValue();
   }
 
-  AnyBase* CloneBase() const {
+  [[nodiscard]] AnyBasePtr CloneBase() const {
     if (not HasValue()) {
       return nullptr;
     }
@@ -128,6 +156,6 @@ class Any {
   }
 
   /*========================= Fields =========================*/
-  AnyBase* base_{};
+  AnyBasePtr base_;
 };
 }  // namespace Any::Polymorphic

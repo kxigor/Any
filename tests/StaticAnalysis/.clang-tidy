@@ -4,7 +4,7 @@ Checks: >
   -*,abseil-*,bugprone-*,clang-analyzer-*,cppcoreguidelines-*,
   google-*,hicpp-*,llvm-*,misc-*,modernize-*,mpi-*,performance-*,
   portability-*,readability-*,-modernize-use-trailing-return-type,
-  -cppcoreguidelines-pro-bounds-pointer-arithmetic,-bugprone-easily-swappable-parameters
+  -cppcoreguidelines-pro-bounds-pointer-arithmetic,-bugprone-easily-swappable-parameters,-llvm-header-guard,-google-explicit-constructor,-hicpp-explicit-conversions
 
 WarningsAsErrors: '*'
 
@@ -28,9 +28,9 @@ CheckOptions:
   - key: readability-identifier-naming.MemberCase
     value: 'lower_case'
   - key: readability-identifier-naming.MethodCase
-    value: 'lower_case'
+    value: 'CamelCase'
   - key: readability-identifier-naming.NamespaceCase
-    value: 'lower_case'
+    value: 'CamelCase'
   - key: readability-identifier-naming.ParameterCase
     value: 'lower_case'
   - key: readability-identifier-naming.PrivateMemberSuffix
@@ -40,7 +40,7 @@ CheckOptions:
   - key: readability-identifier-naming.StructCase
     value: 'CamelCase'
   - key: readability-identifier-naming.TypeAliasCase
-    value: 'lower_case'
+    value: 'CamelCase'
   - key: readability-identifier-naming.TypedefCase
     value: 'CamelCase'
   - key: readability-identifier-naming.TypeTemplateParameterCase

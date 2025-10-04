@@ -3,9 +3,7 @@ find_program(BASH_EXECUTABLE bash REQUIRED)
 set(CLANG_FORMAT_SCRIPT ${PROJECT_SOURCE_DIR}/tests/StaticAnalysis/clang_format_tests.sh)
 
 file(GLOB_RECURSE SRCS_FOR_FORMAT
-    "${PROJECT_SOURCE_DIR}/src/**/*.cpp"
-    "${PROJECT_SOURCE_DIR}/include/**/*.cpp"
-    "${PROJECT_SOURCE_DIR}/app/*.cpp"
+  "${PROJECT_SOURCE_DIR}/include/**/*.hpp"
 )
 
 add_test(
